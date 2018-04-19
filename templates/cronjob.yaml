@@ -1,0 +1,46 @@
+{{ if .Values.cronjob.create }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "freshrss.fullname" . }}
+  labels:
+    app: {{ template "freshrss.name" . }}
+    chart: {{ template "freshrss.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  schedule: "{{ .Values.cronjob.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ .Chart.Name }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            args:
+            - 'su'
+            - '-s'
+            - '/bin/sh'
+            - '-c'
+            - '/usr/bin/php /var/www/FreshRSS/app/actualize_script.php'
+            - apache
+            resources:
+{{ toYaml .Values.resources | indent 14 }}
+            volumeMounts:
+            - mountPath: /var/www/FreshRSS/data
+              name: data
+              subPath: data
+            - mountPath: /var/www/FreshRSS/extensions
+              name: data
+              subPath: extensions
+          restartPolicy: OnFailure
+          volumes:
+          - name: data
+          {{- if .Values.persistence.enabled }}
+            persistentVolumeClaim:
+              claimName: {{ .Values.persistence.existingClaim | default (include "freshrss.fullname" .) }}
+          {{- else }}
+            emptyDir: {}
+          {{- end }}
+{{ end }}
