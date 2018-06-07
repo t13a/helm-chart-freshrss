@@ -2,7 +2,7 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: {{ template "freshrss.fullname" . }}
+  name: {{ template "freshrss.fullname" . }}-actualize
   labels:
     app: {{ template "freshrss.name" . }}
     chart: {{ template "freshrss.chart" . }}
@@ -15,7 +15,7 @@ spec:
       template:
         spec:
           containers:
-          - name: {{ .Chart.Name }}
+          - name: {{ .Chart.Name }}-actualize
             image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
             imagePullPolicy: {{ .Values.image.pullPolicy }}
             args:
