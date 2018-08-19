@@ -13,6 +13,7 @@ spec:
   concurrencyPolicy: "{{ .Values.cronjob.concurrencyPolicy }}"
   jobTemplate:
     spec:
+      activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
       template:
         spec:
           containers:

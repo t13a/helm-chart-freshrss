@@ -10,6 +10,9 @@ cronjob:
   schedule: "0 * * * *"
   concurrencyPolicy: Forbid
 
+job:
+  activeDeadlineSeconds: 1800
+
 service:
   type: ClusterIP
   port: 80
