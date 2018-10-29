@@ -8,7 +8,7 @@ metadata:
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.deployment.replicaCount }}
   selector:
     matchLabels:
       app: {{ template "freshrss.name" . }}
@@ -23,6 +23,12 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+{{ toYaml .Values.deployment.args | indent 12 }}
+          {{- if .Values.extraEnv }}
+          env:
+{{ toYaml .Values.extraEnv | indent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 80
@@ -37,31 +43,36 @@ spec:
           #     path: /
           #     port: http
           resources:
-{{ toYaml .Values.resources | indent 12 }}
+{{ toYaml .Values.deployment.resources | indent 12 }}
           volumeMounts:
-          - mountPath: /var/www/FreshRSS/data
-            name: data
-            subPath: data
-          - mountPath: /var/www/FreshRSS/extensions
-            name: data
-            subPath: extensions
+            - mountPath: /var/www/FreshRSS/data
+              name: data
+            {{- if .Values.extraVolumeMounts }}
+{{ toYaml .Values.extraVolumeMounts | indent 12 }}
+            {{- end }}
       volumes:
-      - name: data
-      {{- if .Values.persistence.enabled }}
-        persistentVolumeClaim:
-          claimName: {{ .Values.persistence.existingClaim | default (include "freshrss.fullname" .) }}
-      {{- else }}
-        emptyDir: {}
-      {{- end }}
-    {{- with .Values.nodeSelector }}
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "freshrss.fullname" .) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 8 }}
+        {{- end }}
+      {{- with .Values.deployment.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- with .Values.affinity }}
+      {{- end }}
+      {{- with .Values.deployment.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
+      {{- end }}
+      {{- with .Values.deployment.tolerations }}
       tolerations:
 {{ toYaml . | indent 8 }}
-    {{- end }}
+      {{- end }}
+      {{- with .Values.deployment.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}

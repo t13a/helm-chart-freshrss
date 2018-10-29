@@ -1,17 +1,39 @@
-replicaCount: 1
-
 image:
   repository: freshrss/freshrss
-  tag: 1.10.2
+  tag: 1.12.0
   pullPolicy: IfNotPresent
 
-cronjob:
-  create: false
-  schedule: "0 * * * *"
-  concurrencyPolicy: Forbid
+# extraEnv:
 
-job:
-  activeDeadlineSeconds: 1800
+deployment:
+  replicaCount: 1
+  args:
+    - httpd
+    - -D
+    - FOREGROUND
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  priorityClassName:
+
+cronjob:
+  enabled: true
+  schedule: "5,35 * * * *"
+  startingDeadlineSeconds:
+  activeDeadlineSeconds:
+  args:
+    - su
+    - apache
+    - -s
+    - /bin/sh
+    - -c
+    - 'php /var/www/FreshRSS/app/actualize_script.php'
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  priorityClassName:
 
 service:
   type: ClusterIP
@@ -52,16 +74,5 @@ persistence:
   accessMode: ReadWriteOnce
   size: 8Gi
 
-resources: {}
-  # limits:
-  #  cpu: 100m
-  #  memory: 128Mi
-  # requests:
-  #  cpu: 100m
-  #  memory: 128Mi
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
+# extraVolumeMounts:
+# extraVolumes:

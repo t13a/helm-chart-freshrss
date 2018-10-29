@@ -1,4 +1,4 @@
-{{ if .Values.cronjob.create }}
+{{ if .Values.cronjob.enabled }}
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
@@ -10,39 +10,60 @@ metadata:
     heritage: {{ .Release.Service }}
 spec:
   schedule: "{{ .Values.cronjob.schedule }}"
-  concurrencyPolicy: "{{ .Values.cronjob.concurrencyPolicy }}"
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
-      activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+      {{- with .Values.cronjob.startingDeadlineSeconds }}
+      startingDeadlineSeconds: {{ . }}
+      {{- end }}
+      {{- with .Values.cronjob.activeDeadlineSeconds }}
+      activeDeadlineSeconds: {{ . }}
+      {{- end }}
       template:
         spec:
           containers:
-          - name: {{ .Chart.Name }}-actualize
-            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-            imagePullPolicy: {{ .Values.image.pullPolicy }}
-            args:
-            - 'su'
-            - '-s'
-            - '/bin/sh'
-            - '-c'
-            - '/usr/bin/php /var/www/FreshRSS/app/actualize_script.php'
-            - apache
-            resources:
-{{ toYaml .Values.resources | indent 14 }}
-            volumeMounts:
-            - mountPath: /var/www/FreshRSS/data
-              name: data
-              subPath: data
-            - mountPath: /var/www/FreshRSS/extensions
-              name: data
-              subPath: extensions
+            - name: {{ .Chart.Name }}-actualize
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args:
+{{ toYaml .Values.cronjob.args | indent 16 }}
+              {{- if .Values.extraEnv }}
+              env:
+{{ toYaml .Values.extraEnv | indent 16 }}
+              {{- end }}
+              resources:
+{{ toYaml .Values.cronjob.resources | indent 16 }}
+              volumeMounts:
+                - mountPath: /var/www/FreshRSS/data
+                  name: data
+                {{- if .Values.extraVolumeMounts }}
+{{ toYaml .Values.extraVolumeMounts | indent 16 }}
+                {{- end }}
           restartPolicy: OnFailure
           volumes:
-          - name: data
-          {{- if .Values.persistence.enabled }}
-            persistentVolumeClaim:
-              claimName: {{ .Values.persistence.existingClaim | default (include "freshrss.fullname" .) }}
-          {{- else }}
-            emptyDir: {}
+            - name: data
+              {{- if .Values.persistence.enabled }}
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.existingClaim | default (include "freshrss.fullname" .) }}
+              {{- else }}
+              emptyDir: {}
+              {{- end }}
+            {{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 12 }}
+            {{- end }}
+          {{- with .Values.cronjob.nodeSelector }}
+          nodeSelector:
+{{ toYaml . | indent 12 }}
+          {{- end }}
+          {{- with .Values.cronjob.affinity }}
+          affinity:
+{{ toYaml . | indent 12 }}
+          {{- end }}
+          {{- with .Values.cronjob.tolerations }}
+          tolerations:
+{{ toYaml . | indent 12 }}
+          {{- end }}
+          {{- with .Values.cronjob.priorityClassName }}
+          priorityClassName: {{ . }}
           {{- end }}
 {{ end }}
