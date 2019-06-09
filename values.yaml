@@ -1,6 +1,6 @@
 image:
   repository: freshrss/freshrss
-  tag: 1.13.0
+  tag: 1.14.2
   pullPolicy: IfNotPresent
 
 # extraEnv:
@@ -8,9 +8,11 @@ image:
 deployment:
   replicaCount: 1
   args:
-    - httpd
-    - -D
-    - FOREGROUND
+    - /bin/sh
+    - -c
+    - |
+        . /etc/apache2/envvars \
+        && exec apache2 -D FOREGROUND
   resources: {}
   nodeSelector: {}
   tolerations: []
@@ -19,16 +21,17 @@ deployment:
 
 cronjob:
   enabled: true
-  schedule: "5,35 * * * *"
+  schedule: "17,47 * * * *"
   startingDeadlineSeconds:
   activeDeadlineSeconds:
   args:
     - su
-    - apache
+    - www-data
     - -s
     - /bin/sh
     - -c
-    - 'php /var/www/FreshRSS/app/actualize_script.php'
+    - |
+        php /var/www/FreshRSS/app/actualize_script.php
   resources: {}
   nodeSelector: {}
   tolerations: []
